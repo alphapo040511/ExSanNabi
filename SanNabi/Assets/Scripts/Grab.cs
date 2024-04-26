@@ -9,18 +9,16 @@ public class Grab : MonoBehaviour
     public GameObject Player;
     public bool AbleDash = false;
 
+    public RaycastHit hit;
+
     private LineRenderer line;
-    private Rigidbody rb;
-    private Vector3 target;
     private Transform startPoint;
     private Transform endPoint;
-    private RaycastHit hit;
     private bool isGrab = false;
 
     // Start is called before the first frame update
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
         line = GetComponent<LineRenderer>();
 
         line.enabled = false;
@@ -28,12 +26,7 @@ public class Grab : MonoBehaviour
         line.startWidth = 0.1f;
         line.endWidth = 0.1f;
 
-
-
-
         line.positionCount = 2;
-
-        rb.velocity = Vector3.zero;
     }
 
     // Update is called once per frame
@@ -49,30 +42,30 @@ public class Grab : MonoBehaviour
         line.SetPosition(0, startPoint.position);
         line.SetPosition(1, endPoint.position);
 
-        target = Cursor.GetComponent<ClickCheck>().MousePosition;
-        transform.LookAt(new Vector3(target.x, target.y, 0));
+        transform.LookAt(new Vector3(Cursor.transform.position.x, Cursor.transform.position.y, 0));
 
-        if(Input.GetMouseButtonDown(0) && isGrab == false)
+        float dis = Vector3.Distance(new Vector3(Cursor.transform.position.x, Cursor.transform.position.y, 0), Player.transform.position);
+
+            if (Input.GetMouseButtonDown(0) && isGrab == false && dis <= 15)
         {
             isGrab = true;
-            if (Physics.Raycast(Player.transform.position, transform.forward, out hit, 10))
+            if (Physics.Raycast(Player.transform.position, transform.forward, out hit, 15))
             {
-                if(hit.collider.transform.tag == "AbleGrab")
+                if(hit.collider.transform.tag == "AbleGrab" || hit.collider.transform.tag == "Enemy")
                 {
                     line.enabled = true;
-                    transform.DOMove(hit.point, 0.1f).SetEase(Ease.Linear).OnComplete(() => AbleDash = true);
+                    transform.DOMove(hit.point, 0.1f).SetEase(Ease.Linear).OnComplete(OnGrab);
                 }
             }
             else
             {
                 line.enabled = true;
-                transform.DOMove(transform.forward * 10, 0.2f).OnComplete(ReturnGrab);
+                transform.DOMove(new Vector3(Cursor.transform.position.x, Cursor.transform.position.y, 0), 0.2f).OnComplete(ReturnGrab);
             }
         }
 
         if(Input.GetMouseButtonUp(0))
         {
-            isGrab = false;
             ReturnGrab();
         }
     }
@@ -81,6 +74,14 @@ public class Grab : MonoBehaviour
     {
         DOTween.Kill(transform);
         line.enabled = false;
-        isGrab = false; ;
+        AbleDash = false;
+        Player.GetComponent<PlayerMove>().IsGrab = false;
+        isGrab = false;
+    }
+
+    private void OnGrab()
+    {
+        AbleDash = true;
+        Player.GetComponent<PlayerMove>().IsGrab = true;
     }
 }
